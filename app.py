@@ -7,7 +7,8 @@ import io
 import pymupdf as fitz
 from converter import process_pdf_to_dxf, get_pdf_metadata_and_preview
 
-app = Flask(__name__)
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+app = Flask(__name__, template_folder=template_dir)
 app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # Hasta 64 MB para planos de alta resolución
 
 
