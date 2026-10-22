@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF a CAD (DXF) Studio | Conversor de Planos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(16, 23, 38, 0.75);
+      --card-border: rgba(56, 189, 248, 0.18);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #3b82f6;
+      --accent-indigo: #6366f1;
+      --accent-emerald: #10b981;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --radius: 16px;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 24px 40px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand span {
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-indigo));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge-status {
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    main {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 992px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+      padding: 28px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .card-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--accent-cyan);
+    }
+
+    /* Upload Zone */
+    .dropzone {
+      border: 2px dashed rgba(56, 189, 248, 0.35);
+      border-radius: 14px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.4);
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .dropzone input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .drop-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+    }
+
+    .drop-text {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .drop-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .file-badge {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding: 12px 18px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 10px;
+    }
+
+    .file-badge.active {
+      display: flex;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-weight: 500;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+    }
+
+    .file-size {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Options */
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    select, input[type="text"] {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    .toggle-group {
+      grid-column: span 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      margin-top: 6px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-cyan);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Action Button */
+    .btn-convert {
+      width: 100%;
+      margin-top: 24px;
+      padding: 15px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: var(--transition);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-convert:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(56, 189, 248, 0.5);
+    }
+
+    .btn-convert:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Right Column / Preview & Stats */
+    .preview-box {
+      width: 100%;
+      height: 260px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .preview-box img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .preview-empty {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .stat-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .terminal-box {
+      background: #050811;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      height: 140px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .terminal-box p {
+      margin-bottom: 4px;
+    }
+
+    .terminal-box .log-success {
+      color: var(--accent-emerald);
+    }
+
+    .btn-download {
+      display: none;
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-download.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-download:hover {
+      background: var(--accent-emerald);
+      color: #000;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
+        </svg>
+      </div>
+      <div>
+        <h1>PDF a <span>DWG / CAD</span> Studio</h1>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Conversor Arquitectónico con calibración y capas</p>
+      </div>
+    </div>
+    <div class="badge-status">Motor CAD Activo</div>
+  </header>
+
+  <main>
+    <!-- Left Column: Upload & Options -->
+    <div class="card">
+      <div class="card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        Cargar Plano PDF
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="pdfFileInput" accept="application/pdf">
+        <div class="drop-icon">
+          <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"></path>
+          </svg>
+        </div>
+        <div class="drop-text">Arrastra tu plano PDF aquí</div>
+        <div class="drop-hint">o haz clic para explorar archivos en tu equipo</div>
+      </div>
+
+      <div class="file-badge" id="fileBadge">
+        <div class="file-info">
+          <svg width="24" height="24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
+          </svg>
+          <div>
+            <div class="file-name" id="fileNameText">archivo.pdf</div>
+            <div class="file-size" id="fileSizeText">0 KB</div>
+          </div>
+        </div>
+        <button id="btnRemoveFile" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">✕</button>
+      </div>
+
+      <div class="config-grid">
+        <div class="form-group">
+          <label for="unitsSelect">Unidad Destino CAD</label>
+          <select id="unitsSelect">
+            <option value="m" selected>Metros (m) - Recomendado Arquitectura</option>
+            <option value="mm">Milímetros (mm) - Mecánica / Detalle</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="scaleSelect">Escala del Plano</label>
+          <select id="scaleSelect">
+            <option value="auto" selected>Detectar automáticamente (ej. 1:50, 1:100)</option>
+            <option value="1:20">1:20 (Detalle)</option>
+            <option value="1:25">1:25</option>
+            <option value="1:50">1:50 (Plantas arquitectónicas)</option>
+            <option value="1:75">1:75</option>
+            <option value="1:100">1:100 (Planos generales)</option>
+            <option value="1:200">1:200</option>
+            <option value="1:500">1:500 (Emplazamientos)</option>
+            <option value="1:1">1:1 (Sin escala / Papel)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="grid-column: span 2;">
+          <label for="curveModeSelect">Procesamiento de Curvas y Arcos</label>
+          <select id="curveModeSelect">
+            <option value="hybrid" selected>Híbrido Inteligente: Arcos nativos (ARC) + Splines CAD (Recomendado)</option>
+            <option value="polyline">Polilínea suavizada (LWPOLYLINE - Compatible con cualquier CAD / Láser / CNC)</option>
+            <option value="spline">Splines puras de AutoCAD (SPLINE)</option>
+          </select>
+        </div>
+
+        <div class="toggle-group">
+          <div>
+            <div style="font-weight: 500; font-size: 0.9rem;">Forzar Vectorizado Ráster (OpenCV)</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Activar para planos escaneados en imagen física</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="forceRasterToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn-convert" id="btnConvert" disabled>
+        <span class="spinner" id="convertSpinner"></span>
+        <span id="btnConvertText">Convertir a DXF / CAD</span>
+      </button>
+    </div>
+
+    <!-- Right Column: Live Preview, Logs & Download -->
+    <div class="card">
+      <div class="card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        Vista Previa y Estadísticas
+      </div>
+
+      <div class="preview-box" id="previewContainer">
+        <div class="preview-empty" id="previewEmpty">
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+          </svg>
+          <span>La previsualización del plano aparecerá aquí</span>
+        </div>
+        <img id="previewImage" style="display: none;" alt="Previsualización de plano">
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statPags">-</div>
+          <div class="stat-label">Páginas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statScale">-</div>
+          <div class="stat-label">Escala Detectada</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statElements">-</div>
+          <div class="stat-label">Vectores Generados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTexts">-</div>
+          <div class="stat-label">Textos Extraídos</div>
+        </div>
+      </div>
+
+      <div class="terminal-box" id="terminalBox">
+        <p>> Sistema listo. Selecciona o arrastra un plano PDF.</p>
+      </div>
+
+      <a id="btnDownload" class="btn-download" download>
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+        </svg>
+        Descargar Archivo DXF
+      </a>
+    </div>
+  </main>
+
+  <script>
+    let currentFile = null;
+
+    const dropzone = document.getElementById('dropzone');
+    const pdfFileInput = document.getElementById('pdfFileInput');
+    const fileBadge = document.getElementById('fileBadge');
+    const fileNameText = document.getElementById('fileNameText');
+    const fileSizeText = document.getElementById('fileSizeText');
+    const btnRemoveFile = document.getElementById('btnRemoveFile');
+    const btnConvert = document.getElementById('btnConvert');
+    const btnConvertText = document.getElementById('btnConvertText');
+    const convertSpinner = document.getElementById('convertSpinner');
+    const previewEmpty = document.getElementById('previewEmpty');
+    const previewImage = document.getElementById('previewImage');
+    const statPags = document.getElementById('statPags');
+    const statScale = document.getElementById('statScale');
+    const statElements = document.getElementById('statElements');
+    const statTexts = document.getElementById('statTexts');
+    const terminalBox = document.getElementById('terminalBox');
+    const btnDownload = document.getElementById('btnDownload');
+
+    function log(msg, isSuccess = false) {
+      const p = document.createElement('p');
+      if (isSuccess) p.className = 'log-success';
+      p.textContent = `> ${msg}`;
+      terminalBox.appendChild(p);
+      terminalBox.scrollTop = terminalBox.scrollHeight;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    async function handleFile(file) {
+      if (!file || file.type !== 'application/pdf') {
+        alert('Por favor selecciona un archivo PDF válido.');
+        return;
+      }
+      currentFile = file;
+      fileNameText.textContent = file.name;
+      fileSizeText.textContent = formatBytes(file.size);
+      fileBadge.classList.add('active');
+      btnConvert.disabled = false;
+      btnDownload.classList.remove('active');
+
+      log(`Cargado archivo: ${file.name} (${formatBytes(file.size)})`);
+      log('Generando previsualización del plano...');
+
+      // Enviar a preview
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      try {
+        const res = await fetch('/api/preview', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          statPags.textContent = data.num_pages;
+          const firstPageScale = data.pages[0]?.detected_scale || 'N/A';
+          statScale.textContent = firstPageScale;
+          if (data.preview_img) {
+            previewImage.src = 'data:image/png;base64,' + data.preview_img;
+            previewImage.style.display = 'block';
+            previewEmpty.style.display = 'none';
+          }
+          if (data.curve_count !== undefined) {
+            log(`Elementos detectados en PDF: ${data.line_count || 0} líneas, ${data.curve_count || 0} curvas Bézier.`);
+          }
+          log(`PDF analizado: ${data.num_pages} página(s). Escala preliminar: ${firstPageScale}`);
+        } else {
+          log(`Aviso: ${data.error || 'No se pudo generar miniatura'}`);
+        }
+      } catch (err) {
+        log(`Error al previsualizar: ${err.message}`);
+      }
+    }
+
+    pdfFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(name => {
+      dropzone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropzone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files.length) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    btnRemoveFile.addEventListener('click', () => {
+      currentFile = null;
+      pdfFileInput.value = '';
+      fileBadge.classList.remove('active');
+      btnConvert.disabled = true;
+      btnDownload.classList.remove('active');
+      previewImage.style.display = 'none';
+      previewEmpty.style.display = 'flex';
+      statPags.textContent = '-';
+      statScale.textContent = '-';
+      statElements.textContent = '-';
+      statTexts.textContent = '-';
+      log('Archivo descartado.');
+    });
+
+    btnConvert.addEventListener('click', async () => {
+      if (!currentFile) return;
+
+      btnConvert.disabled = true;
+      convertSpinner.style.display = 'inline-block';
+      btnConvertText.textContent = 'Procesando vectores y curvas CAD...';
+      btnDownload.classList.remove('active');
+
+      log('Iniciando extracción y calibración de curvas, arcos y geometrías CAD...');
+
+      const formData = new FormData();
+      formData.append('pdf', currentFile);
+      formData.append('units', document.getElementById('unitsSelect').value);
+      formData.append('scale', document.getElementById('scaleSelect').value);
+      formData.append('curve_mode', document.getElementById('curveModeSelect').value);
+      formData.append('force_raster', document.getElementById('forceRasterToggle').checked ? 'true' : 'false');
+
+      try {
+        const res = await fetch('/api/convert', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Error durante la conversión');
+        }
+
+        const statsHeader = res.headers.get('X-Stats');
+        if (statsHeader) {
+          const stats = JSON.parse(statsHeader);
+          const totalVectors = (stats.lines || 0) + (stats.polylines || 0) + (stats.arcs || 0) + (stats.splines || 0) + (stats.raster_lines || 0);
+          statElements.textContent = totalVectors.toLocaleString();
+          statTexts.textContent = (stats.texts || 0).toLocaleString();
+          
+          let curveDetails = [];
+          if (stats.arcs) curveDetails.push(`${stats.arcs} arcos (ARC)`);
+          if (stats.splines) curveDetails.push(`${stats.splines} splines (SPLINE)`);
+          if (stats.polylines) curveDetails.push(`${stats.polylines} polilíneas`);
+          const curveMsg = curveDetails.length ? ` (${curveDetails.join(', ')})` : '';
+          
+          log(`Vectores extraídos: ${totalVectors}${curveMsg} | Textos: ${stats.texts}`, true);
+        }
+
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const dxfName = currentFile.name.replace(/\.pdf$/i, '') + '.dxf';
+
+        btnDownload.href = downloadUrl;
+        btnDownload.download = dxfName;
+        btnDownload.classList.add('active');
+
+        log(`¡Éxito! Archivo listo: ${dxfName}`, true);
+      } catch (err) {
+        log(`Error: ${err.message}`);
+        alert('Error al convertir el plano: ' + err.message);
+      } finally {
+        btnConvert.disabled = false;
+        convertSpinner.style.display = 'none';
+        btnConvertText.textContent = 'Convertir a DXF / CAD';
+      }
+    });
+  </script>
+</body>
+</html>

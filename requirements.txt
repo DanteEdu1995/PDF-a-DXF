@@ -1,0 +1,5 @@
+PyMuPDF>=2.0
+ezdxf>=1.4.0
+opencv-contrib-python>=4.8.0
+numpy>=1.26.0
+flask>=3.0.0
