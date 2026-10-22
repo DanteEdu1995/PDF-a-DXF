@@ -22,6 +22,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.spec
 
 # Archivos CAD o PDF temporales de prueba
 *.dxf
