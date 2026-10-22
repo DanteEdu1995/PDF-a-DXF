@@ -1,2 +1,3 @@
 @echo off
-start "" "%~dp0dist\PDF_a_CAD_Studio\PDF_a_CAD_Studio.exe"
+cd /d "%~dp0"
+start "" "%~dp0PDF_a_CAD_Studio.exe"
