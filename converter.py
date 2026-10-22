@@ -1,6 +1,8 @@
 import io
 import re
 import math
+import sys
+sys.modules['pymupdf.layout'] = None
 import pymupdf as fitz
 import ezdxf
 from ezdxf.math import Vec2, Vec3, Bezier4P

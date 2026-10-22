@@ -1,4 +1,8 @@
 import os
+import sys
+# Bloquear layout de PyMuPDF para evitar errores de archivos ONNX ausentes
+sys.modules['pymupdf.layout'] = None
+
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -226,7 +230,7 @@ class PdfToCadApp(ctk.CTk):
             with open(pdf_path, "rb") as f:
                 pdf_bytes = f.read()
 
-            dxf_content, stats = process_pdf_to_dxf(
+            res = process_pdf_to_dxf(
                 pdf_bytes=pdf_bytes,
                 manual_scale=manual_scale,
                 target_units=units,
@@ -234,6 +238,8 @@ class PdfToCadApp(ctk.CTk):
                 force_raster=force_raster,
                 log_callback=self.log
             )
+            dxf_content = res[0]
+            stats = res[1]
 
             with open(dxf_path, "wb") as f:
                 f.write(dxf_content)
@@ -268,5 +274,14 @@ class PdfToCadApp(ctk.CTk):
 
 
 if __name__ == "__main__":
-    app = PdfToCadApp()
-    app.mainloop()
+    import traceback
+    try:
+        app = PdfToCadApp()
+        app.mainloop()
+    except Exception as e:
+        with open("error_startup.log", "w", encoding="utf-8") as f:
+            traceback.print_exc(file=f)
+        try:
+            messagebox.showerror("Error de Inicio", f"Error al iniciar la aplicación:\n{str(e)}")
+        except Exception:
+            pass
